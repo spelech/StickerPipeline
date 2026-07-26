@@ -2,7 +2,7 @@
 
 [![CI Pipeline](https://github.com/spelech/StickerPipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/spelech/StickerPipeline/actions/workflows/ci.yml)
 [![Release](https://github.com/spelech/StickerPipeline/actions/workflows/release.yml/badge.svg)](https://github.com/spelech/StickerPipeline/actions/workflows/release.yml)
-[![Semantic Versioning](https://img.shields.io/badge/semver-1.0.0-blue.svg)](https://semver.org/)
+[![Semantic Versioning](https://img.shields.io/badge/semver-1.0.2-blue.svg)](https://semver.org/)
 
 An automated Python microservice that transforms AI-generated images (via **LiteLLM**, **OpenWebUI**, **LibreChat**, or **ComfyUI**) into high-precision, print-and-cut ready sticker sheets optimized for **Cricut Joy 2** cutting machines and **Epson EcoTank** network printers.
 
@@ -15,7 +15,17 @@ An automated Python microservice that transforms AI-generated images (via **Lite
 - **Die-Cut White Contour Generator**: Uses OpenCV kernel dilation and Gaussian smoothing to synthesize clean, smooth white sticker borders and optional color bleed margins.
 - **High-DPI Sheet Builder**: Assembles processed sticker batches onto 300 DPI page layouts (US Letter / A4 / Cricut Joy 2 printable bounds) outputting printable PDF and PNG sheets.
 - **Flexible REST API**: Upload raw images directly or trigger on-demand page assembly via REST endpoints.
-- **Production Container Stack**: Microservice packaged as a Docker container integrated with system networks (`net_webservices`, `net_mcp`), persistent storage, and Caddy reverse proxy routing.
+- **Sample Output Gallery**: See real sample outputs in the [`samples/`](samples/) directory.
+
+---
+
+## 🖼️ Sample Processing Demonstration
+
+Check out the full sample gallery in [`samples/README.md`](samples/README.md).
+
+| Stage 1: Raw Image | Stage 2: Background Removed | Stage 3: Die-Cut White Outline | Stage 4: 300 DPI Sheet |
+| :---: | :---: | :---: | :---: |
+| `samples/sample_raw.jpg` | `samples/sample_nobg.png` | `samples/sample_bordered.png` | `samples/sample_sheet.png` |
 
 ---
 
@@ -146,7 +156,7 @@ GET /health
 ```
 Response:
 ```json
-{ "status": "ok", "service": "sticker-pipeline", "version": "1.0.0" }
+{ "status": "ok", "service": "sticker-pipeline", "version": "1.0.2" }
 ```
 
 ### Direct Manual Image Upload Processing

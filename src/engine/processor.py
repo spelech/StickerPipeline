@@ -20,7 +20,7 @@ from src.engine.sheet import SheetGenerator
 class StickerProcessor:
     """Coordinates rembg background removal, OpenCV border generation, and storage management."""
     
-    def __init__(self, storage_dir: str = "./storage", border_offset_px: int = 20, dpi: int = 300):
+    def __init__(self, storage_dir: str = "/app/storage", border_offset_px: int = 20, dpi: int = 300):
         try:
             self.storage_dir = Path(storage_dir)
             self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -39,16 +39,18 @@ class StickerProcessor:
         for d in [self.raw_dir, self.processed_dir, self.sheets_dir, self.metadata_dir]:
             d.mkdir(parents=True, exist_ok=True)
             
-        # Initialize rembg session if available
-        if HAS_REMBG:
-            try:
-                self.rembg_session = new_session(model_name="u2net")
-            except Exception:
-                self.rembg_session = None
-        else:
-            self.rembg_session = None
-            
+        # Lazy load rembg session on demand
+        self._rembg_session = None
         self.sheet_generator = SheetGenerator(dpi=self.dpi)
+
+    @property
+    def rembg_session(self):
+        if self._rembg_session is None and HAS_REMBG:
+            try:
+                self._rembg_session = new_session(model_name="u2net")
+            except Exception:
+                self._rembg_session = None
+        return self._rembg_session
 
     def _fallback_remove_bg(self, img: Image.Image) -> Image.Image:
         """Fallback background removal using luminance/color thresholding if rembg is not installed."""

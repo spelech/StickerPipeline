@@ -4,7 +4,7 @@ import time
 import json
 import uuid
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from PIL import Image
 import numpy as np
 
@@ -36,7 +36,6 @@ class StickerProcessor:
         # Lazy load rembg session on demand
         self._rembg_session = None
         self._rembg_remove = None
-        self.sheet_generator = SheetGenerator(dpi=self.dpi)
 
     @property
     def rembg_session(self):
@@ -45,7 +44,7 @@ class StickerProcessor:
                 from rembg import new_session, remove
                 self._rembg_remove = remove
                 self._rembg_session = new_session(model_name="u2net")
-            except Exception as e:
+            except Exception:
                 self._rembg_session = False
                 self._rembg_remove = None
         return self._rembg_session if self._rembg_session is not False else None
@@ -126,14 +125,31 @@ class StickerProcessor:
             "metadata": metadata
         }
 
-    def generate_sheet_from_processed(self, max_stickers: int = 6) -> Dict[str, Any]:
-        """Collects recent bordered sticker PNGs and generates a printable page layout sheet."""
-        bordered_files = list(self.processed_dir.glob("*_bordered.png"))
+    def generate_sheet_from_processed(
+        self,
+        max_stickers: int = 6,
+        paper_size: str = "JOY2_LETTER",
+        sticker_size_in: float = 2.0,
+        selected_filenames: Optional[List[str]] = None,
+        add_registration_frame: bool = True
+    ) -> Dict[str, Any]:
+        """Collects processed bordered sticker PNGs and generates a Cricut Joy 2 printable page layout sheet."""
+        if selected_filenames:
+            bordered_files = [self.processed_dir / fn for fn in selected_filenames if (self.processed_dir / fn).exists()]
+        else:
+            bordered_files = list(self.processed_dir.glob("*_bordered.png"))
+            
         if not bordered_files:
             raise FileNotFoundError("No processed bordered stickers available to generate sheet.")
             
         images = [Image.open(p).convert("RGBA") for p in bordered_files[:max_stickers]]
-        sheet_img, pdf_bytes = self.sheet_generator.build_sheet(images)
+        
+        generator = SheetGenerator(dpi=self.dpi, paper_size=paper_size)
+        sheet_img, pdf_bytes = generator.build_sheet(
+            images,
+            target_sticker_height_in=sticker_size_in,
+            add_registration_frame=add_registration_frame
+        )
         
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         sheet_img_filename = f"sheet_{timestamp}.png"
@@ -149,5 +165,6 @@ class StickerProcessor:
         return {
             "sheet_img_path": str(sheet_img_path),
             "sheet_pdf_path": str(sheet_pdf_path),
-            "sticker_count": len(images)
+            "sticker_count": len(images),
+            "paper_size": paper_size
         }

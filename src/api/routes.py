@@ -15,7 +15,10 @@ processor = StickerProcessor(
 
 class SheetBuildRequest(BaseModel):
     max_stickers: Optional[int] = 6
-    paper_size: Optional[str] = "LETTER"
+    paper_size: Optional[str] = "JOY2_LETTER" # "JOY2_MAT", "JOY2_LETTER", "LETTER", "A4"
+    sticker_size_in: Optional[float] = 2.0
+    selected_filenames: Optional[List[str]] = None
+    add_registration_frame: Optional[bool] = True
 
 @router.post("/process")
 async def process_manual_upload(
@@ -56,7 +59,13 @@ async def list_stickers():
 async def build_sticker_sheet(req: SheetBuildRequest):
     """Generates a printable 300 DPI sheet layout from recent processed stickers."""
     try:
-        res = processor.generate_sheet_from_processed(max_stickers=req.max_stickers or 6)
+        res = processor.generate_sheet_from_processed(
+            max_stickers=req.max_stickers or 6,
+            paper_size=req.paper_size or "JOY2_LETTER",
+            sticker_size_in=req.sticker_size_in or 2.0,
+            selected_filenames=req.selected_filenames,
+            add_registration_frame=req.add_registration_frame if req.add_registration_frame is not None else True
+        )
         return res
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

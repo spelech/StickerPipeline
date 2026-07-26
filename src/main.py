@@ -11,7 +11,7 @@ from src.api.interceptor import handle_openai_image_proxy
 app = FastAPI(
     title="StickerPipeline API",
     description="Automated Cricut Joy 2 & Epson EcoTank sticker generation and prep pipeline microservice.",
-    version="1.0.2"
+    version="1.0.5"
 )
 
 app.add_middleware(
@@ -34,7 +34,7 @@ async def healthcheck():
     return {
         "status": "ok",
         "service": "sticker-pipeline",
-        "version": "1.0.2"
+        "version": "1.0.5"
     }
 
 @app.get("/", response_class=HTMLResponse)
@@ -104,7 +104,7 @@ async def root_dashboard():
         .dropzone {
             border: 2px dashed #ec4899;
             border-radius: 12px;
-            padding: 3rem 1.5rem;
+            padding: 2.5rem 1.5rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -118,7 +118,7 @@ async def root_dashboard():
             background: linear-gradient(135deg, #ec4899, #8b5cf6);
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1.25rem;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
@@ -130,10 +130,10 @@ async def root_dashboard():
         .btn:hover { opacity: 0.9; }
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
-            max-height: 400px;
+            max-height: 350px;
             overflow-y: auto;
         }
         .gallery-item {
@@ -142,10 +142,11 @@ async def root_dashboard():
             padding: 0.5rem;
             border: 1px solid var(--border);
             text-align: center;
+            position: relative;
         }
         .gallery-item img {
             width: 100%;
-            height: 120px;
+            height: 110px;
             object-fit: contain;
         }
         .badge {
@@ -155,6 +156,23 @@ async def root_dashboard():
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
         }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 0.4rem;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 0.6rem;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -163,7 +181,7 @@ async def root_dashboard():
             <i class="fa-solid fa-scissors"></i> StickerPipeline Studio
         </div>
         <div>
-            <span class="badge"><i class="fa-solid fa-circle-check"></i> Cricut Joy 2 Ready</span>
+            <span class="badge"><i class="fa-solid fa-sliders"></i> Cricut Joy 2 Format Configured</span>
             <a href="/docs" style="color: var(--muted); margin-left: 1rem; text-decoration: none;" target="_blank"><i class="fa-solid fa-code"></i> API Docs</a>
         </div>
     </div>
@@ -171,8 +189,8 @@ async def root_dashboard():
     <div class="container">
         <div class="grid">
             <div class="card">
-                <h2><i class="fa-solid fa-cloud-arrow-up"></i> Manual Image Processing</h2>
-                <p style="color: var(--muted);">Upload any image to remove the background, generate a 300 DPI die-cut white outline border, and stage for cut.</p>
+                <h2><i class="fa-solid fa-cloud-arrow-up"></i> Image Ingress</h2>
+                <p style="color: var(--muted);">Upload any image to generate background removal + 300 DPI die-cut white outline for Cricut Joy 2.</p>
                 
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="dropzone" onclick="document.getElementById('fileInput').click()">
@@ -186,14 +204,44 @@ async def root_dashboard():
             </div>
 
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2><i class="fa-solid fa-layer-group"></i> Processed Stickers</h2>
-                    <button class="btn" onclick="buildSheet()"><i class="fa-solid fa-print"></i> Build Printable Sheet</button>
-                </div>
-                <p style="color: var(--muted);">Stickers auto-intercepted from LiteLLM / OpenWebUI or uploaded manually.</p>
+                <h2><i class="fa-solid fa-sliders"></i> Cricut Joy 2 Sheet Configurator</h2>
                 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-ruler-combined"></i> Target Paper / Mat Preset</label>
+                        <select id="paperPreset">
+                            <option value="JOY2_LETTER" selected>Cricut Joy 2 Letter Mat (8.5" x 11")</option>
+                            <option value="JOY2_MAT">Cricut Joy 2 Standard Mat (4.5" x 6.5")</option>
+                            <option value="LETTER">Standard US Letter (8.5" x 11")</option>
+                            <option value="A4">Standard A4 (8.27" x 11.69")</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-up-right-and-down-left-from-center"></i> Sticker Size (Inches)</label>
+                        <select id="stickerSize">
+                            <option value="1.5">1.5 in (Mini)</option>
+                            <option value="2.0" selected>2.0 in (Standard)</option>
+                            <option value="2.5">2.5 in (Medium)</option>
+                            <option value="3.0">3.0 in (Large)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;">
+                        <input type="checkbox" id="regFrame" checked style="width: auto;">
+                        Include Cricut Sensor Registration Outline Box (3pt Line)
+                    </label>
+                </div>
+
+                <button class="btn" style="width: 100%; margin-top: 0.5rem; justify-content: center;" onclick="buildSheet()">
+                    <i class="fa-solid fa-file-pdf"></i> Generate Cricut Joy 2 Sheet (PDF/PNG)
+                </button>
+
+                <h3 style="font-size: 1rem; margin-top: 1.5rem;"><i class="fa-solid fa-images"></i> Processed Stickers Gallery</h3>
                 <div class="gallery" id="stickerGallery">
-                    <div style="color: var(--muted); padding: 2rem; text-align: center;">Loading stickers...</div>
+                    <div style="color: var(--muted); padding: 1.5rem; text-align: center;">Loading stickers...</div>
                 </div>
             </div>
         </div>
@@ -207,14 +255,14 @@ async def root_dashboard():
                 const gallery = document.getElementById('stickerGallery');
                 
                 if (data.stickers.length === 0) {
-                    gallery.innerHTML = '<div style="color: var(--muted); padding: 2rem; text-align: center;">No stickers processed yet. Generate images with [STICKER] tag or upload above!</div>';
+                    gallery.innerHTML = '<div style="color: var(--muted); padding: 1.5rem; text-align: center;">No stickers processed yet. Generate images with [STICKER] tag or upload above!</div>';
                     return;
                 }
                 
                 gallery.innerHTML = data.stickers.map(name => `
                     <div class="gallery-item">
                         <img src="/storage/processed/${name}" alt="${name}">
-                        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; word-break: break-all;">${name.replace('_bordered.png', '')}</div>
+                        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; word-break: break-all;">${name.replace('_bordered.png', '')}</div>
                     </div>
                 `).join('');
             } catch (err) {
@@ -251,16 +299,28 @@ async def root_dashboard():
 
         async function buildSheet() {
             const status = document.getElementById('status');
-            status.innerText = 'Generating 300 DPI printable PDF & PNG sheet...';
+            const paperPreset = document.getElementById('paperPreset').value;
+            const stickerSize = parseFloat(document.getElementById('stickerSize').value);
+            const regFrame = document.getElementById('regFrame').checked;
+            
+            status.innerText = 'Generating 300 DPI Cricut Joy 2 printable sheet...';
+            
             try {
                 const res = await fetch('/api/v1/sheets/build', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({max_stickers: 6})
+                    body: JSON.stringify({
+                        max_stickers: 12,
+                        paper_size: paperPreset,
+                        sticker_size_in: stickerSize,
+                        add_registration_frame: regFrame
+                    })
                 });
+                
                 const data = await res.json();
                 if (res.ok) {
-                    status.innerHTML = `✅ Sheet generated! <a href="/storage/sheets/${data.sheet_pdf_path.split('/').pop()}" target="_blank" style="color: #ec4899;">Download PDF Sheet</a>`;
+                    const filename = data.sheet_pdf_path.split('/').pop();
+                    status.innerHTML = `✅ Sheet created! <a href="/storage/sheets/${filename}" target="_blank" style="color: #ec4899; font-weight: 700; text-decoration: underline;">Download PDF Sheet (${data.paper_size})</a>`;
                 } else {
                     status.innerText = '❌ Failed to build sheet: ' + (data.detail || 'No stickers available');
                 }

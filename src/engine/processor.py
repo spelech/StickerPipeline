@@ -8,12 +8,6 @@ from typing import Dict, Any, Optional
 from PIL import Image
 import numpy as np
 
-try:
-    from rembg import remove, new_session
-    HAS_REMBG = True
-except ImportError:
-    HAS_REMBG = False
-
 from src.engine.contour import create_sticker_contour
 from src.engine.sheet import SheetGenerator
 
@@ -41,16 +35,20 @@ class StickerProcessor:
             
         # Lazy load rembg session on demand
         self._rembg_session = None
+        self._rembg_remove = None
         self.sheet_generator = SheetGenerator(dpi=self.dpi)
 
     @property
     def rembg_session(self):
-        if self._rembg_session is None and HAS_REMBG:
+        if self._rembg_session is None:
             try:
+                from rembg import new_session, remove
+                self._rembg_remove = remove
                 self._rembg_session = new_session(model_name="u2net")
-            except Exception:
-                self._rembg_session = None
-        return self._rembg_session
+            except Exception as e:
+                self._rembg_session = False
+                self._rembg_remove = None
+        return self._rembg_session if self._rembg_session is not False else None
 
     def _fallback_remove_bg(self, img: Image.Image) -> Image.Image:
         """Fallback background removal using luminance/color thresholding if rembg is not installed."""
@@ -85,8 +83,8 @@ class StickerProcessor:
         raw_pil.save(raw_path, format="PNG")
         
         # Background removal
-        if HAS_REMBG and self.rembg_session:
-            nobg_pil = remove(raw_pil, session=self.rembg_session)
+        if self.rembg_session and self._rembg_remove:
+            nobg_pil = self._rembg_remove(raw_pil, session=self.rembg_session)
         else:
             nobg_pil = self._fallback_remove_bg(raw_pil)
             

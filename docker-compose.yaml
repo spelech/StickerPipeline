@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  sticker-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sticker-pipeline
+    ports:
+      - "8460:8460"
+    environment:
+      - STICKER_STORAGE_DIR=/app/storage
+      - UPSTREAM_LLM_URL=http://litellm:4000/v1
+      - BORDER_OFFSET_PX=20
+      - TARGET_DPI=300
+      - PORT=8460
+    volumes:
+      - /drives/nfs/stickers:/app/storage
+    restart: unless-stopped
+    networks:
+      - net_webservices
+      - net_mcp
+    labels:
+      - caddy=stickers.wileyriley.com
+      - caddy.import_1=cloudflare
+      - caddy.import_2=tinyauth
+      - caddy.reverse_proxy={{upstreams 8460}}
+      - tinyauth.apps.stickers.config.domain=stickers.wileyriley.com
+      - tinyauth.apps.stickers.oauth.groups=house_member,full_admin
+      - portal.stickers.name=Sticker Pipeline
+      - portal.stickers.description=Automated Cricut Joy 2 & EcoTank print/cut sticker prep microservice.
+      - portal.stickers.category=AI & Automation
+      - portal.stickers.icon=fa-solid fa-scissors
+      - portal.stickers.color=#ec4899
+      - kuma.stickers.http.name=Sticker Pipeline
+      - kuma.stickers.http.url=https://stickers.wileyriley.com/health
+      - kuma.stickers.http.group=Infrastructure
+
+networks:
+  net_webservices:
+    external: true
+  net_mcp:
+    external: true

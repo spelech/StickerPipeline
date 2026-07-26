@@ -15,6 +15,11 @@ def test_health_endpoint():
     assert data["status"] == "ok"
     assert data["service"] == "sticker-pipeline"
 
+def test_root_dashboard_endpoint():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "StickerPipeline Studio" in response.text
+
 def test_manual_process_upload_endpoint():
     # Create test synthetic PNG image
     img = Image.new("RGBA", (150, 150), (255, 0, 0, 255))

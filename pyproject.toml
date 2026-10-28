@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sticker-pipeline"
-version = "1.0.1"
+version = "1.1.0"
 description = "Automated sticker generation, background removal, contour offset, and printable sheet generator for Cricut Joy 2 and Epson EcoTank printers."
 readme = "README.md"
 authors = [{ name = "Antigravity Pipeline" }]
